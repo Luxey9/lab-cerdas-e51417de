@@ -1,226 +1,96 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client"; // Pakai Client bawaan Template
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { FlaskConical, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  // Signup form state
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
-  const [signupRole, setSignupRole] = useState<"praktikan" | "asisten" | "koordinator">("praktikan");
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(loginEmail, loginPassword);
+    try {
+      // 1. Cari user di tabel 'users' Supabase
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single();
 
-    if (error) {
-      toast.error("Gagal masuk", {
-        description: "Email atau kata sandi salah. Silakan coba lagi.",
+      if (error || !data) {
+        throw new Error("Username tidak ditemukan.");
+      }
+
+      // 2. Cek Password (Sederhana)
+      if (data.password !== password) {
+        throw new Error("Password salah.");
+      }
+
+      // 3. Login Sukses -> Simpan Sesi
+      localStorage.setItem("lab_session", JSON.stringify(data));
+      
+      toast({
+        title: "Login Berhasil",
+        description: `Selamat datang, ${data.full_name}`,
       });
-    } else {
-      toast.success("Berhasil masuk!");
-      navigate("/beranda");
-    }
 
-    setIsLoading(false);
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    if (signupPassword.length < 6) {
-      toast.error("Kata sandi terlalu pendek", {
-        description: "Kata sandi harus minimal 6 karakter.",
+      navigate("/beranda"); // Pastikan route '/beranda' sudah ada
+      
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Gagal",
+        description: err.message,
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    const { error } = await signUp(signupEmail, signupPassword, signupName, signupRole);
-
-    if (error) {
-      toast.error("Gagal mendaftar", {
-        description: error.message || "Terjadi kesalahan. Silakan coba lagi.",
-      });
-    } else {
-      toast.success("Pendaftaran berhasil!", {
-        description: "Silakan masuk dengan akun baru Anda.",
-      });
-      // Reset form
-      setSignupEmail("");
-      setSignupPassword("");
-      setSignupName("");
-    }
-
-    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      <div className="w-full max-w-md animate-fade-in">
-        {/* Logo and Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <FlaskConical className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Laboratorium Algoritma
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Sistem Manajemen Laboratorium
-          </p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">Lab Cerdas</h1>
+          <p className="text-gray-500">Masuk untuk mengakses sistem</p>
         </div>
+        
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Username / NIM</label>
+            <Input 
+              placeholder="Contoh: 12345678" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Password</label>
+            <Input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-        <Card className="border-0 shadow-elevated">
-          <Tabs defaultValue="masuk" className="w-full">
-            <CardHeader className="pb-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="masuk">Masuk</TabsTrigger>
-                <TabsTrigger value="daftar">Daftar</TabsTrigger>
-              </TabsList>
-            </CardHeader>
-
-            <CardContent>
-              {/* Login Tab */}
-              <TabsContent value="masuk" className="mt-0">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="nama@universitas.ac.id"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Kata Sandi</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="Masukkan kata sandi"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Memproses...
-                      </>
-                    ) : (
-                      "Masuk"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-
-              {/* Signup Tab */}
-              <TabsContent value="daftar" className="mt-0">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nama Lengkap</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Masukkan nama lengkap"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="nama@universitas.ac.id"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Kata Sandi</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="Minimal 6 karakter"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-role">Peran</Label>
-                    <Select
-                      value={signupRole}
-                      onValueChange={(value: "praktikan" | "asisten" | "koordinator") => setSignupRole(value)}
-                      disabled={isLoading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih peran Anda" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="praktikan">Praktikan (Mahasiswa)</SelectItem>
-                        <SelectItem value="asisten">Asisten Laboratorium</SelectItem>
-                        <SelectItem value="koordinator">Koordinator</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Memproses...
-                      </>
-                    ) : (
-                      "Daftar"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
-        </Card>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2024 Laboratorium Algoritma. Hak Cipta Dilindungi.
-        </p>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Memuat..." : "Masuk"}
+          </Button>
+        </form>
+        
+        <div className="text-center text-sm text-gray-500">
+          <p>Lupa password? Hubungi Asisten Jaga.</p>
+        </div>
       </div>
     </div>
   );
