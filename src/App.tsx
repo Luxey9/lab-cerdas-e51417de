@@ -10,9 +10,44 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Login from "./pages/Login";
 import Beranda from "./pages/Beranda";
 import UploadLaporan from "./pages/UploadLaporan";
+import Absensi from "./pages/Absensi";
+import Jadwal from "./pages/Jadwal";
+import UnduhModul from "./pages/UnduhModul";
+import InputNilai from "./pages/InputNilai";
+import Inventaris from "./pages/Inventaris";
 import NotFound from "./pages/NotFound";
 
+// Placeholder component
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Construction } from "lucide-react";
+
 const queryClient = new QueryClient();
+
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <DashboardLayout>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md text-center card-elevated">
+          <CardHeader>
+            <div className="mx-auto w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+              <Construction className="w-8 h-8 text-warning" />
+            </div>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>
+              Halaman ini sedang dalam pengembangan dan akan segera tersedia.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Silakan kembali lagi nanti atau hubungi administrator untuk informasi lebih lanjut.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+}
 
 // Redirect to beranda if already logged in
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -58,6 +93,30 @@ function AppRoutes() {
 
       {/* Praktikan Routes */}
       <Route
+        path="/absensi"
+        element={
+          <ProtectedRoute>
+            <Absensi />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jadwal"
+        element={
+          <ProtectedRoute>
+            <Jadwal />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/modul"
+        element={
+          <ProtectedRoute>
+            <UnduhModul />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/upload-laporan"
         element={
           <ProtectedRoute allowedRoles={["praktikan"]}>
@@ -66,36 +125,12 @@ function AppRoutes() {
         }
       />
 
-      {/* Placeholder routes for other pages */}
-      <Route
-        path="/absensi"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Absensi" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/jadwal"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Jadwal Saya" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/modul"
-        element={
-          <ProtectedRoute>
-            <PlaceholderPage title="Unduh Modul" />
-          </ProtectedRoute>
-        }
-      />
+      {/* Asisten Routes */}
       <Route
         path="/input-nilai"
         element={
           <ProtectedRoute allowedRoles={["asisten", "koordinator"]}>
-            <PlaceholderPage title="Input Nilai" />
+            <InputNilai />
           </ProtectedRoute>
         }
       />
@@ -119,10 +154,12 @@ function AppRoutes() {
         path="/inventaris"
         element={
           <ProtectedRoute allowedRoles={["asisten", "koordinator"]}>
-            <PlaceholderPage title="Inventaris" />
+            <Inventaris />
           </ProtectedRoute>
         }
       />
+
+      {/* Koordinator Routes */}
       <Route
         path="/manajemen-user"
         element={
@@ -159,36 +196,6 @@ function AppRoutes() {
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
     </Routes>
-  );
-}
-
-// Placeholder component for pages not yet implemented
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Construction } from "lucide-react";
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <DashboardLayout>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md text-center card-elevated">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mb-4">
-              <Construction className="w-8 h-8 text-warning" />
-            </div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>
-              Halaman ini sedang dalam pengembangan dan akan segera tersedia.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Silakan kembali lagi nanti atau hubungi administrator untuk informasi lebih lanjut.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
   );
 }
 
