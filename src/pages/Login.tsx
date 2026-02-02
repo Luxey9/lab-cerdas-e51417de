@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client"; // Pakai Client bawaan Template
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -17,37 +17,29 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // 1. Cari user di tabel 'users' Supabase
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', username)
-        .single();
-
-      if (error || !data) {
-        throw new Error("Username tidak ditemukan.");
-      }
-
-      // 2. Cek Password (Sederhana)
-      if (data.password !== password) {
-        throw new Error("Password salah.");
-      }
-
-      // 3. Login Sukses -> Simpan Sesi
-      localStorage.setItem("lab_session", JSON.stringify(data));
-      
-      toast({
-        title: "Login Berhasil",
-        description: `Selamat datang, ${data.full_name}`,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      navigate("/beranda"); // Pastikan route '/beranda' sudah ada
-      
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.user) {
+        toast({
+          title: "Login Berhasil",
+          description: "Selamat datang kembali!",
+        });
+        navigate("/beranda");
+      }
     } catch (err: any) {
       toast({
         variant: "destructive",
         title: "Login Gagal",
-        description: err.message,
+        description: err.message === "Invalid login credentials" 
+          ? "Email atau password salah." 
+          : err.message,
       });
     } finally {
       setIsLoading(false);
@@ -64,11 +56,12 @@ export default function Login() {
         
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Username / NIM</label>
+            <label className="text-sm font-medium">Email</label>
             <Input 
-              placeholder="Contoh: 12345678" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              placeholder="contoh@email.com" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
